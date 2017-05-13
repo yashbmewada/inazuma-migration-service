@@ -3,10 +3,10 @@ from json import dumps
 
 from flask import Flask, g, Response, request
 
-from neo4j.v1 import GraphDatabase, basic_auth, ResultError
+from neo4j.v1 import GraphDatabase, basic_auth
 
 app = Flask(__name__, static_url_path='/static/')
-driver = GraphDatabase.driver('bolt://127.0.0.1', auth=basic_auth("neo4j","1"))
+driver = GraphDatabase.driver('bolt://127.0.0.1:7687', auth=basic_auth("neo4j","1"))
 #basic auth with: driver = GraphDatabase.driver('bolt://localhost', auth=basic_auth("<user>", "<pwd>"))
 
 def get_db():
@@ -82,14 +82,37 @@ def get_search():
 
 @app.route("/add")
 def add_member():
+    db = get_db()
+    db.run("merge (a:Member{member_id:{member_id},reference_id:{reference_id},"\
+            "referer_name:{referer_name},name:{name},state: {state},status_flag1:0,"\
+            "status_flag2:0})",{"member_id": request.args.get("member_id"),
+                                                "reference_id": request.args.get("reference_id"),
+                                                "referer_name": request.args.get("referer_name"),
+                                                "name": request.args.get("name"),
+                                                "state": request.args.get("state")})
+    db.close()
     return "ADD OK"
 
 @app.route("/update")
 def update_member():
+    db = get_db()
+    db.run("Match (a:Member{name:{name}}) set a.member_id = {member_id},"\
+            "a.reference_id={reference_id},"\
+            "a.referer_name ={referer_name},a.name={name},"\
+            "a.state = {state}",{"member_id": request.args.get("member_id"),
+                                                "reference_id": request.args.get("reference_id"),
+                                                "referer_name": request.args.get("referer_name"),
+                                                "name": request.args.get("name"),
+                                                "state": request.args.get("state")})
+    db.close()
     return "UPDATE OK"
 
 @app.route("/delete")
 def delete_member():
+
+    db = get_db()
+    results = db.run("Match (a:Member{name:{name}}) delete a",{"name":request.args.get("name")})
+    db.close()
     return "DELETE OK"
 
 @app.route("/commission")
