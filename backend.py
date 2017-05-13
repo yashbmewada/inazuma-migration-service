@@ -55,7 +55,26 @@ def get_graph():
 
 @app.route("/tree")
 def get_tree():
-    return "TREE OK"
+    db = get_db()
+    results = db.run("MATCH (a:Member)<-[:Refers*]-(b:Member) return b.name as parent, a.name as children limit 100000")
+    data = []
+    parent_list = set()
+    json = []
+    i=0
+    for record in results:
+        data.append(dict(record))
+    for value in data:
+        parent_list.add(value["parent"])
+    print(parent_list)
+    for parent in parent_list:
+        json.append({"name":parent,"children":[]})
+    for person in json:
+        for value in data:
+            if person["name"] == value["parent"]:
+                person["children"].append({"name":value["children"]})
+
+    return Response(dumps({"data":json}), mimetype="application/json")
+    
 
 @app.route("/search")
 def get_search():
